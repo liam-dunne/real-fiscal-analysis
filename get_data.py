@@ -24,8 +24,8 @@ forex_data = forex_data.drop(columns=["Volume"])
 plt.plot(forex_data.index, forex_data["Close"], label="Close")
 # plt.show()
 
-shortPeriod = 20
-longPeriod = 50
+shortPeriod = 5
+longPeriod = 100
 
 
 # Creates a list of moving averages at each time interval starting at the periods' index
@@ -47,36 +47,47 @@ print(gbp * forex_data.iloc[longPeriod, 0])
 shortMovingAverage = shortMovingAverage[longPeriod - shortPeriod:]
 if shortMovingAverage[0] > longMovingAverage[0]:
     shortPos = 1
+    
 else:
+    usd = gbp * forex_data.iloc[longPeriod, 0]
+    gbp = 0
     shortPos = -1
-previousPos = shortPos
+# previousPos = shortPos
 
 bal = [[gbp, usd]]
 i = 1
-check = 0
+
 while i < len(longMovingAverage):
     # call api
     
     # calc averages
 
-    # check if we wanna buy / sell
-    if shortMovingAverage[i] > longMovingAverage[i]:
-        shortPos = 1
-    else:
-        shortPos = -1
+    # # check if we wanna buy / sell
+    # if shortMovingAverage[i] > longMovingAverage[i]:
+    #     shortPos = 1
+    # else:
+    #     shortPos = -1
     
-    # short moving below long ie selling usd into gbp
-    if shortPos < previousPos:
+    # # short moving below long ie selling usd into gbp
+    # if shortPos > previousPos:
+    #     gbp = usd / forex_data.iloc[i + longPeriod, 0]
+    #     usd = 0
+    # # short moving above long ie buying usd with gbp
+    # elif shortPos < previousPos:
+    #     usd = gbp * forex_data.iloc[i + longPeriod, 0]
+    #     gbp = 0
+
+
+    if shortMovingAverage[i] > longMovingAverage[i] and shortPos==-1:
         gbp = usd / forex_data.iloc[i + longPeriod, 0]
         usd = 0
-        check += 1
-    # short moving above long ie buying usd with gbp
-    elif shortPos > previousPos:
+        shortPos = 1
+    elif shortMovingAverage[i] < longMovingAverage[i] and shortPos==1:
         usd = gbp * forex_data.iloc[i + longPeriod, 0]
         gbp = 0
-        check += 1
+        shortPos = -1
 
-    previousPos = shortPos
+    # previousPos = shortPos
     i += 1
     
     
@@ -84,10 +95,9 @@ while i < len(longMovingAverage):
 
     # wait for new call for api
 
-print(bal[-1][0] * forex_data.iloc[i + longPeriod - 1, 0])
+print(bal[-1][0], bal[-1][1] / forex_data.iloc[-1,0])
 
 plt.plot(forex_data.index[longPeriod:], [i[0] for i in bal], label="GBP")
 plt.plot(forex_data.index[longPeriod:], [i[1] for i in bal], label="USD")
 
 plt.show()
-print(check)
