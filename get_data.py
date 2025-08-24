@@ -9,25 +9,7 @@ import yfinance as yf
 import matplotlib.pyplot as plt
 
 
-# Set the ticker as 'EURUSD=X'
-forex_data = yf.download('SPY', start='2020-01-01', end='2024-01-01', interval='1d')
 
-# Set the index to a datetime object
-forex_data.index = pd.to_datetime(forex_data.index)
-
-# Display the last five rows
-print(forex_data.head())
-print(forex_data.columns)
-forex_data = forex_data.drop(columns=["Volume"])
-
-
-# plt.plot(forex_data.index, forex_data["Close"], label="Close")
-# plt.show()
-
-
-shortVar = np.linspace(1, 51, 11)
-longVar = np.linspace(51, 351, 11)
-shortLat, longLat = np.meshgrid(shortVar, longVar)
 
 def calcMovingAverages(shortPeriod, longPeriod):
     """ 
@@ -38,13 +20,6 @@ def calcMovingAverages(shortPeriod, longPeriod):
     shortMovingAverage = [sum(forex_data.iloc[i:i+shortPeriod,0])/shortPeriod for i in range(len(forex_data.index)-shortPeriod)]
     longMovingAverage = [sum(forex_data.iloc[i:i+longPeriod,0])/longPeriod for i in range(len(forex_data.index)-longPeriod)]
     return shortMovingAverage, longMovingAverage
-
-# plt.plot(forex_data.index[shortPeriod:], shortMovingAverage, label="SMA")
-# plt.plot(forex_data.index[longPeriod:], longMovingAverage, label="LMA")
-# plt.legend()
-# plt.xticks(rotation=45)
-# plt.show()
-
 
 def runSim(shortPeriod, longPeriod):
     """
@@ -63,12 +38,12 @@ def runSim(shortPeriod, longPeriod):
     # initial conditions ie call api and calc avg once
     shortMovingAverage = shortMovingAverage[longPeriod - shortPeriod:]
     if shortMovingAverage[0] > longMovingAverage[0]:
-        # usd = gbp * forex_data.iloc[longPeriod, 0]
-        # gbp = 0
+        usd = gbp * forex_data.iloc[longPeriod, 0]
+        gbp = 0
         shortPos = 1
     else:
-        usd = gbp / forex_data.iloc[longPeriod, 0]
-        gbp = 0
+        # usd = gbp / forex_data.iloc[longPeriod, 0]
+        # gbp = 0
         shortPos = -1
 
     bal = [[gbp, usd]]
@@ -84,19 +59,19 @@ def runSim(shortPeriod, longPeriod):
         # BUY USD AT A HIGH, ie WHEN SHORT GOES ABOVE LONG
         # SELL USD AT A LOW, ie WHEN SHORT GOES BELOW LONG
         if shortMovingAverage[i] > longMovingAverage[i] and shortPos==-1:
-            # usd = gbp * forex_data.iloc[i + longPeriod, 0]
-            # gbp = 0
+            usd = gbp * forex_data.iloc[i + longPeriod, 0]
+            gbp = 0
 
-            gbp = usd * forex_data.iloc[i + longPeriod, 0]
-            usd = 0
+            # gbp = usd * forex_data.iloc[i + longPeriod, 0]
+            # usd = 0
             
             shortPos = 1
         elif shortMovingAverage[i] < longMovingAverage[i] and shortPos==1:
-            # gbp = usd / forex_data.iloc[i + longPeriod, 0]
-            # usd = 0
+            gbp = usd / forex_data.iloc[i + longPeriod, 0]
+            usd = 0
 
-            usd = gbp / forex_data.iloc[i + longPeriod, 0]
-            gbp = 0
+            # usd = gbp / forex_data.iloc[i + longPeriod, 0]
+            # gbp = 0
             shortPos = -1
 
         i += 1
@@ -107,17 +82,64 @@ def runSim(shortPeriod, longPeriod):
 
         # print(bal[-1][0], bal[-1][1])
 
+
+    # # graphing the short and long moving averages against the closing times
+    # # This code should only be used for singular short and long period
+    # plt.plot(forex_data.index, forex_data["Close"], label="Close")
+    # plt.plot(forex_data.index[longPeriod:], shortMovingAverage, label="SMA")
+    # plt.plot(forex_data.index[longPeriod:], longMovingAverage, label="LMA")
+    # plt.legend()
+    # plt.show()
+    # return bal
+
+
+    # This is the other code for varying short and long periods
     if bal[-1][0] == 0:
         return bal[-1][1] / (forex_data.iloc[longPeriod][0])
     else:
         return bal[-1][0] 
+    
+
+
+
+
+
+# Set the ticker as 'EURUSD=X'
+forex_data = yf.download('GBPUSD=X', period='2y', interval='1h')
+print(forex_data.head())
+# Set the index to a datetime object
+forex_data.index = pd.to_datetime(forex_data.index)
+
+# # Display the last five rows; and column names
+# print(forex_data.head())
+# print(forex_data.columns)
+forex_data = forex_data.drop(columns=["Volume"])
+
+
+
+
+
+# # Running one simulation over a specific short and long period to graph its behaviour
+# shortPeriod = 16 
+# longPeriod = 2400
+# bal = runSim(shortPeriod, longPeriod)
+
+# if bal[-1][0] == 0:
+#     print(bal[-1][1] / (forex_data.iloc[longPeriod][0]))
+# else:
+#     print(bal[-1][0]) 
 
 # plt.plot(forex_data.index[longPeriod:], [i[0] for i in bal], label="GBP")
 # plt.plot(forex_data.index[longPeriod:], [i[1] for i in bal], label="USD")
-
 # plt.show()
 
 
+
+
+# Running simulations over varying short and long periods
+shortVar = np.linspace(1, 51, 11)
+longVar = np.linspace(10 * 24, 110 * 24, 11)
+shortLat, longLat = np.meshgrid(shortVar, longVar)
 runSimVect = np.vectorize(runSim)
 simResults = runSimVect(shortLat, longLat)
 plt.imshow(simResults, cmap="hot")
