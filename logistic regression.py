@@ -25,16 +25,16 @@ def negativeLogLoss(predictions, values):
 
 # Get data
 ex = "GBPUSD=X"
-start = "2022-01-01"
+start = "2021-01-01"
 end = "2025-12-31"
 data = getData(ex, start, end)
 
 # Create weights and bias
-weights = torch.zeros(5, requires_grad=True)
+weights = torch.zeros(3, requires_grad=True)
 bias = torch.zeros(1, requires_grad=True)
 
 # Set learning rate and epochs
-learning_rate = 0.1
+learning_rate = 0.02
 epochs = 1000
 
 # Use rolling function to get SMA, LMA and volatility (predictor variables)
@@ -55,9 +55,16 @@ avg_gain = gain.rolling(window=14).mean()
 avg_loss = loss.rolling(window=14).mean()
 data["RSI"] = 100 - (100/(1+(avg_gain/avg_loss)))
 
+# Calculate EMAs and MACD
+# We set adjust to false to use the standard recursive formula
+# Use EMAs since they are more reactive than SMAs, and forex is a fast-moving market
+ema_12 = data["Close"].ewm(span=12, adjust=False).mean() # 12-day EMA
+ema_26 = data["Close"].ewm(span=26, adjust=False).mean() # 26-day EMA
+data["MACD"] = ema_12 - ema_26
+
 data.dropna(inplace=True)
 
-X = torch.tensor(data[["Return", "SMA", "LMA", "Volatility", "RSI"]].values, dtype=torch.float32)
+X = torch.tensor(data[["MACD", "Volatility", "RSI"]].values, dtype=torch.float32)
 y = torch.tensor(data["Target"].values, dtype=torch.float32)
 
 # Standardize features
@@ -98,7 +105,7 @@ for epoch in range(epochs):
         weights.grad.zero_()
         bias.grad.zero_()
 
-    if epoch % 20 == 0:
+    if epoch % 100 == 0:
         print(f"Epoch {epoch}, Loss: {loss.item()}")
     
 # Evaluate on test set
