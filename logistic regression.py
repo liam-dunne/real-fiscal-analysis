@@ -30,7 +30,7 @@ end = "2025-12-31"
 data = getData(ex, start, end)
 
 # Create weights and bias
-weights = torch.zeros(4, requires_grad=True)
+weights = torch.zeros(5, requires_grad=True)
 bias = torch.zeros(1, requires_grad=True)
 
 # Set learning rate and epochs
@@ -47,9 +47,17 @@ data["Volatility"] = data["Close"].rolling(window=20).std()
 data["Return"] = data["Close"].pct_change() # Increase from previous close
 data["Target"] = (data["Return"].shift(-1) > 0).astype(int) # 1 if change is positive, 0 if negative
 
+# Calculate 14 day RSI
+# Use np.clip to restrict values to be >=0 or <=0
+gain = np.clip(data["Return"], min=0) # Take only positive returns
+loss = -np.clip(data["Return"], max=0) # Take only negative returns, - to convert to positive losses
+avg_gain = gain.rolling(window=14).mean() 
+avg_loss = loss.rolling(window=14).mean()
+data["RSI"] = 100 - (100/(1+(avg_gain/avg_loss)))
+
 data.dropna(inplace=True)
 
-X = torch.tensor(data[["Return", "SMA", "LMA", "Volatility"]].values, dtype=torch.float32)
+X = torch.tensor(data[["Return", "SMA", "LMA", "Volatility", "RSI"]].values, dtype=torch.float32)
 y = torch.tensor(data["Target"].values, dtype=torch.float32)
 
 # Standardize features
@@ -60,7 +68,7 @@ split = int(0.8 * len(data))
 X_train, X_test = X[:split], X[split:]
 y_train, y_test = y[:split], y[split:]
 
-print(data[["Return", "SMA", "LMA", "Volatility", "Target"]].corr())
+print(data[["Return", "SMA", "LMA", "Volatility", "RSI", "Target"]].corr())
 
 
 # Training loop
