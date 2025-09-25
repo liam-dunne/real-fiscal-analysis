@@ -93,4 +93,12 @@ for epoch in range(epochs):
     if epoch % 20 == 0:
         print(f"Epoch {epoch}, Loss: {loss.item()}")
     
-        print(prediction[-10:])
+# Evaluate on test set
+# Use torch.no_grad() since we are just predicting, not training
+with torch.no_grad():
+    linear_combination = torch.matmul(X_test, weights) + bias
+    prediction = torch.sigmoid(linear_combination)
+    pred_classes = (prediction >= 0.5).float() # Convert to float since y_test is float
+    accuracy = (pred_classes == y_test).float().mean() # Element wise boolean comparison, convert to 0s and 1s, then take mean for accuracy
+
+print(accuracy.item())
