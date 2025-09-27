@@ -26,7 +26,7 @@ def negativeLogLoss(predictions, values):
 # Get data
 ex = "GBPUSD=X"
 start = "2022-01-01"
-end = "2025-12-31"
+end = "2024-12-31"
 data = getData(ex, start, end)
 
 
@@ -46,7 +46,7 @@ epochs = 1000
 data["Volatility"] = data["Close"].rolling(window=20).std()
 
 data["Return"] = data["Close"].pct_change() # Increase from previous close
-data["Target"] = (data["Close"].pct_change(periods=14).shift(-1) > 0).astype(int) # 1 if change is positive, 0 if negative
+data["Target"] = (data["Close"].pct_change(periods=14).shift(-14) > 0).astype(int) # 1 if change is positive, 0 if negative
 
 # Calculate 14 day RSI
 # Use np.clip to restrict values to be >=0 or <=0
